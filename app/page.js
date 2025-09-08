@@ -1,103 +1,104 @@
-import Image from "next/image";
+// DashboardPage.jsx
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import SearchBar from "@/components/SearchBar";
+import SortTabs from "@/components/SortTabs";
+import NewsCard from "@/components/NewsCard";
+import Loading from "@/components/Loading";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
+
+export default function DashboardPage() {
+  const [select, setSelect] = useState("publishedAt");
+  const [search, setSearch] = useState("");
+  const [input, setInput] = useState("");
+
+  async function fetchNews({ pageParam = 1, queryKey }) {
+    const [_news, { search, select }] = queryKey;
+    const res = await fetch(
+      `/api/news?q=${search}&page=${pageParam}&sortBy=${select}`,
+      { next: { revalidate: 60 } }
+    );
+    if (!res.ok) throw new Error("Failed to fetch news");
+    return res.json();
+  }
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ["news", { search, select }],
+    queryFn: fetchNews,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length === 0) return undefined;
+      return allPages.length + 1;
+    },
+  });
+
+  const { ref, inView } = useInView({ threshold: 0.5 });
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) fetchNextPage();
+  }, [inView]);
+
+  const articles = data?.pages.flat() ?? [];
+  console.log(data);
+  console.log(articles);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="w-[90%] m-auto">
+      <h1 className="text-4xl font-extrabold text-center my-10">Daily News</h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      {/* 검색 + 정렬 */}
+      <div className="md:flex justify-between items-center mb-6">
+        <SearchBar
+          search={input}
+          setSearch={setInput}
+          onSearch={() => setSearch(input)} // 버튼 클릭 시 검색
+        />
+        <SortTabs
+          select={select}
+          setSelect={setSelect}
+          onSearch={() => setSearch(input)} // 정렬 변경 시 검색 반영
+        />
+      </div>
+
+      {/* 뉴스 카드 */}
+      <div
+        className={`${
+          articles.length !== 0
+            ? "grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-6"
+            : "w-[90%] m-auto"
+        }`}
+      >
+        {isLoading ? (
+          <Loading />
+        ) : error ? (
+          <p className="text-2xl font-extrabold text-center text-red-500">
+            Error loading articles
+          </p>
+        ) : articles.length === 0 ? (
+          <p className="text-2xl font-extrabold text-center">
+            The article could not be found
+          </p>
+        ) : (
+          articles.map((article, i) => {
+            if (i === articles.length - 1)
+              return (
+                <NewsCard key={i} article={article} refProp={ref} index={i} />
+              );
+            return <NewsCard key={i} article={article} index={i} />;
+          })
+        )}
+      </div>
+
+      {isFetchingNextPage && <Loading />}
     </div>
   );
 }
