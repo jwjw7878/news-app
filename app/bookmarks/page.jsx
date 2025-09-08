@@ -3,7 +3,7 @@ import React, { useContext } from "react";
 import Image from "next/image";
 import { FaTrash } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
-import { removeAllbookmark } from "../store/bookmarkSlice";
+import { removeAllbookmark, setBookmark } from "../store/bookmarkSlice";
 
 export default function BookmarkPage() {
   const bookmark = useSelector((state) => state.news.bookmark);
@@ -50,7 +50,7 @@ export default function BookmarkPage() {
               </a>
             </div>
             <button
-              onClick={() => bookmarkHandler(item)}
+              onClick={() => dispatch(setBookmark(item))}
               className="p-2 rounded-full cursor-pointer text-red-500 hover:bg-red-100 transition"
             >
               <FaTrash />
