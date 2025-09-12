@@ -48,8 +48,6 @@ export default function DashboardPage() {
   }, [inView]);
 
   const articles = data?.pages.flat() ?? [];
-  console.log(data);
-  console.log(articles);
 
   return (
     <div className="w-[90%] m-auto">
